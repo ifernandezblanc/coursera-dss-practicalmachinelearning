@@ -1,0 +1,126 @@
+---
+title: "Coursera - Practical Machine Learning - Course Assignment"
+author: "Iñigo Fernández del Amo"
+date: "1/2/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Executive Summary
+
+
+# 1. Introduction
+
+# 2. Data preparation
+
+The following are the R libraries utilized for this assignment.
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret) # For training models and predicting outcomes
+library(randomForest) # For applying random forests' algorithms
+set.seed(234332) # For reproducibility purposes
+```
+
+The training and test data sets can be downloaded directly from the Internet.
+
+```{r}
+trainURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+training <- read.csv(url(trainURL), na.strings = c("NA", "", "#DIV/0!"))
+training$classe <- as.factor(training$classe) # Ensure the label variable is treated as a factor
+dim(training)
+testURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+testing <- read.csv(url(testURL), na.strings = c("NA", "", "#DIV/0!"))
+dim(testing)
+```
+
+For each data set a total of 160 variables are loaded, with 19622 observations for the training set and 20 observations for the test set.
+
+Due to the large number of observations in the training data set, this can be further split for cross-validation purposes (using a 70/30 ratio).
+
+```{r}
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+trainSet <- training[inTrain, ]
+valSet <- training[-inTrain, ]
+```
+
+A brief exploration to the training data set shows that many of those variables have a large amount of NA values, while some others have very small variances. Besides, the first seven columns are identifiers with no relevance as predictors. All the variables can therefore be removed. 
+
+```{r}
+allNA <- sapply(trainSet, function(x) mean(is.na(x))) > 0.95 # remove vars with NAs > 95%
+trainSet <- trainSet[, allNA == FALSE]
+valSet <- valSet[, allNA == FALSE]
+nzv <- nearZeroVar(trainSet) # remove variables with near-zero variance
+trainSet <- trainSet[, -nzv]
+valSet <- valSet[, -nzv]
+idVARS <- c(1:7)
+trainSet <- trainSet[, -idVARS]
+valSet <- valSet[, -idVARS]
+dim(trainSet)
+dim(valSet)
+```
+
+These data tidying operations leave a total of 52 variables for classe prediction.
+
+## 3. Prediction modelling with ML algorithms
+
+Due to the number of variables included in the study, there are several methods that can be applied to obtain predictions on the outcome "classe": (a) Naive Bayes, (b) Linear discriminant analysism, (c) Decision trees, (d) Random forests and (e) Stochastic Gradient Boosting (generalized boosted models).
+
+```{r}
+# Functions to train each ML algorithm applied sequentially
+# Training control parameters
+control <- trainControl(	preProcOptions = list(thresh = 0.8), 
+                      allowParallel=T,
+                      savePredictions=T,
+                      method = "cv",
+                      number = 10)
+# Training function for trainSet
+mlTraining <- function (mlMethod) {
+  modelFit <- train(classe ~ ., data = trainSet, method = mlMethod, trControl = control)
+  return(modelFit)
+}
+# Confusion matrix for valSet
+mlPredicting <- function(modelFit) {
+  modelPrediction <- predict(modelFit, newdata = valSet)
+  modelCM <- confusionMatrix(modelPrediction, valSet$classe)
+  modelCM$methodName <- modelFit$modelInfo$label
+  return(modelCM)
+}
+# Accuracy obtained in valSet for each algorithm applied
+mlEvaluating <- function(modelResult) {
+  return(data.frame(Method = modelResult$methodName, Accuracy = modelResult$overall["Accuracy"]))
+}
+# List ML algorithms to be applied, train them with trainSet and evaluate their accuracies with valSet
+mlMethods <- c("nb", "lda", "rpart", "gbm", "rf")
+mlModels <- lapply(mlMethods, mlTraining)
+mlResults <- lapply(mlModels, mlPredicting)
+# Visualize accuracies in the report, results in the appendices
+mlAccuracies <- as.data.frame(do.call(rbind,(lapply(mlResults, mlEvaluating))))
+mlAccuracies
+```
+
+### A. Decision trees
+
+### B. Random forests
+
+### C. Generalized boosted models
+
+## 4. Data prediction
+
+## 5. Conclusions
+
+## Appendices
+
+### A. Results of ML algorithms training
+
+```{r}
+mlModels
+```
+
+### B. Results of ML algorithms evaluation
+
+```{r}
+mlResults
+```
+
