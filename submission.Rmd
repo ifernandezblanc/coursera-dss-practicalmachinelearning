@@ -3,8 +3,8 @@ title: "Coursera - Practical Machine Learning - Course Assignment"
 author: "Iñigo Fernández del Amo"
 date: "1/2/2021"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, echo = FALSE, include = FALSE}
@@ -13,13 +13,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Executive Summary
 
-This report explains a procedure to predict the *classe* of 20 different test cases belonging to the Weight Lifting Exercise data set. Among various ML algorithms trained using k-fold cross-validation ($k = 10$), Random Forests obtained the lowest out-of-sample error ($0.7%$). Thus, making it the most accurate algorithm to predict the abovementioned outcomes. 
+This report explains a procedure to predict the *classe* of 20 different test cases belonging to the Weight Lifting Exercise data set. Among various ML algorithms trained using k-fold cross-validation ($k = 10$), Random Forests obtained the lowest out-of-sample error rate ($0.7%$). Thus, making it the most accurate algorithm to predict the abovementioned outcomes. 
 
 # 1. Introduction
 
 The Weight Lifting Exercise data set comprises information collected from various sensors (e.g., accelerometers) in wearable devices (e.g., Jawbone Up, Fitbit, etc.) regarding the movements of people when performing Weight Lifting exercises. This data set, and the different variables within it, can be utilized to predict how well wearable devices' users perform certain Weight Lifting exercises.
 
-The Weight Lifting Exercise data set has been presented in [**"Qualitative Activity Recognition of Weight Lifting Exercises"** by *Velloso, Bulling, Gellersen, Ugulino and Fuks (2013)*](http://groupware.les.inf.puc-rio.br/work.jsf?p1=11201). For more information on it, please visit: [**http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises**](http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises).
+The Weight Lifting Exercise data set has been presented in [**"Qualitative Activity Recognition of Weight Lifting Exercises"** by *Velloso, Bulling, Gellersen, Ugulino and Fuks (2013)*](http://groupware.les.inf.puc-rio.br/work.jsf?p1=11201). For more information on it, please visit: [http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises](http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises).
+
+For more information on the original code employed to conduct this course assignment, please visit: [https://github.com/ifernandezblanc/coursera_dss_practicalmachinelearning](https://github.com/ifernandezblanc/coursera_dss_practicalmachinelearning).
 
 # 2. Data preparation
 
@@ -105,28 +107,33 @@ mlPlotting <- function(modelResult) {
 # Calculate errors
 mlEvaluating <- function(modelResult) {
   return(data.frame(Algorithm = modelResult$methodName,
-                    In_Sample_Error = round(1 - modelResult$methodAccuracy, 4),
-                    Out_Of_Sample_Error = round(1 - modelResult$overall["Accuracy"], 4)))
+                    In_Sample_Error_Rate = round(1 - modelResult$methodAccuracy, 4),
+                    Out_Of_Sample_Error_Rate = round(1 - modelResult$overall["Accuracy"], 4)))
 }
 ```
 
 The results of training these algorithms with the *trainSet* and evaluating them with the *valSet* are shown below. The coding employed to run those is show in [**Appendix A**][Appendix A]. The results of models' training and evaluation are fully displayed in [**Appendix B**][Appendix B] and [**Appendix C**][Appendix C], respectively. It is worthy to note that k-fold cross-validation ($k = 10$) was employed to train these models. 
 
-```{r models, warning = FALSE, message = FALSE, error = FALSE}
-# List ML algorithms to be applied, train them with trainSet and evaluate their accuracies with valSet
+```{r models, results = "hide", warning = FALSE, message = FALSE, error = FALSE}
+# List ML algorithms, train them with trainSet and evaluate tthem with valSet
 mlMethods <- c("nb", "lda", "rpart", "gbm", "rf")
 mlModels <- lapply(mlMethods, mlTraining)
 mlResults <- lapply(mlModels, mlPredicting)
+```
+
+```{r plots}
 # Visualize confusion matrices and accuracies
-mlPlots <- lapply(mlResults, mlPlotting)
 layout(matrix(c(1,3,5,2,4,5), nrow = 3, ncol = 2))
-mlPlots
+mlPlots <- lapply(mlResults, mlPlotting)
+```
+
+```{r errors}
 # Visualize in-sample and out-of-sample errors
 mlErrors <- data.frame(do.call(rbind,(lapply(mlResults, mlEvaluating))))
 mlErrors
 ```
 
-These results show the in-sample and out-of-sample errors obtained by the algorithms for both, the training set (*trainSet*) and the cross-validation set (*valSet*). Based on them, it is possible to say that Random Forests is the algorithm obtaining the lowest out-of-sample error (~0.7%). This is closely followed by Stochastic Gradient Boosting (~4%), while Naive Bayes (~26%), Linear Discriminant Analysis (~32%) and Decision Trees - CART (~52%) obtain less accurate results. Therefore, it seems reasonable to use Random Forests to predict the *classe* outcome on the *testing* data set. 
+These results show the in-sample and out-of-sample error rates obtained by the algorithms for both, the training set (*trainSet*) and the cross-validation set (*valSet*). Based on them, it is possible to say that Random Forests is the algorithm obtaining the lowest out-of-sample error rate (~0.7%). This is closely followed by Stochastic Gradient Boosting (~4%), while Naive Bayes (~26%), Linear Discriminant Analysis (~32%) and Decision Trees - CART (~52%) obtain less accurate results. Therefore, it seems reasonable to use Random Forests to predict the *classe* outcome on the *testing* data set. 
 
 # 4. Data prediction
 
@@ -138,7 +145,7 @@ predict(mlModels[[5]], newdata = testing)
 
 # 5. Conclusions
 
-This report shows the application of different ML algorithms to predict the *classe* outcome on the Weight Lifting Exercise data set. Due to the large number of NA values in some variables, and the low variances in others, only 52 variables out of 160 were used to predict the outcome. Besides, different ML algorithms (Naive Bayes, LDA, CART, GBM and RF) were trained (using 10-fold cross-validation) and evaluated with cross-validation data sets (*valSet*) to compare them according to their out-of-sample errors ($1- Accuracy$). Random Forests (RF) was the algorithm with the lowest out-of-sample error ($0.7%$) and so, it was utilized to predict the results on the *testing* data set.
+This report shows the application of different ML algorithms to predict the *classe* outcome on the Weight Lifting Exercise data set. Due to the large number of NA values in some variables, and the low variances in others, only 52 variables out of 160 were used to predict the outcome. Besides, different ML algorithms (Naive Bayes, LDA, CART, GBM and RF) were trained (using 10-fold cross-validation) and evaluated with cross-validation data sets (*valSet*) to compare them according to their out-of-sample error rates ($1- Accuracy$). Random Forests (RF) was the algorithm with the lowest out-of-sample error ($0.7%$) and so, it was utilized to predict the results on the *testing* data set.
 
 # Appendices
 
